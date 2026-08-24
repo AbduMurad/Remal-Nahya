@@ -65,6 +65,9 @@ jobs:
       - name: Test — routing, language switch, catalogue filter, form, drawer
         run: python tools/test.py
 
+      - name: Mobile — bottom bar, touch targets, safe areas, RTL mirroring
+        run: python tools/mobile.py
+
       - name: Stop the server
         if: always()
         run: kill "$(cat /tmp/server.pid)" 2>/dev/null || true

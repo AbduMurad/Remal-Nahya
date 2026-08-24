@@ -47,6 +47,7 @@ tools/
   fonts.py         fetches + subsets IBM Plex → dist/assets/fonts + fonts.json
   qa.py            link integrity, WCAG contrast, per-page DOM audit, weights
   test.py          routing, language switch, catalogue filter, form, mobile drawer
+  mobile.py        bottom bar: touch targets, safe areas, RTL mirroring, overflow
   shot.py          full-page screenshots at any viewport
 
 raw/               the twelve source photographs, ungraded
@@ -64,6 +65,7 @@ python3 tools/fonts.py     # fetch + subset webfonts             (needs network)
 python3 src/build.py       # generate dist/
 python3 tools/qa.py        # 0 broken refs, 0 contrast fails, 0 DOM issues
 python3 tools/test.py      # interaction tests
+python3 tools/mobile.py    # bottom-bar and small-screen checks
 ```
 
 `qa.py`, `test.py` and `shot.py` want a local server on `127.0.0.1:8901` serving
@@ -89,6 +91,30 @@ Type is IBM Plex Sans + IBM Plex Sans Arabic + IBM Plex Mono — one coordinated
 superfamily, so both scripts share weight and rhythm instead of being two unrelated
 faces bolted together. Self-hosted; latin and arabic subsets only (458 KB, and the
 browser fetches only the subset it needs).
+
+### Navigation
+
+Three tiers, one breakpoint each:
+
+| width | what shows |
+|---|---|
+| ≥ 1081px | full horizontal nav in the header |
+| 901–1080px | burger drawer |
+| ≤ 900px | **bottom tab bar** + burger drawer |
+
+The bar carries five destinations — Home, Services, Tools, Wells and Contact, the last
+of these the conversion action, marked by a filled crimson disc rather than crimson
+text (which would fail contrast on navy). About is the one page not in the bar; the
+drawer still carries all six.
+
+Below 900px the top bar is also hidden — the phone numbers and depot codes it holds
+are already in the drawer and the footer, and that reclaims 38px of chrome on a phone.
+
+`--tabbar-h` is a single token driving both the bar's height and the `padding-block-end`
+that keeps content clear of it, so the two can't drift apart. The bar's top rule is an
+inset box-shadow rather than a border, for the same reason — a border would add to the
+height the padding is derived from. `env(safe-area-inset-bottom)` handles the iPhone
+home indicator, on the bar and on the drawer.
 
 Motion: scroll reveals, one sticky pinned section, one logo ticker, count-up stats.
 All of it collapses under `prefers-reduced-motion`, and a 3.2s fail-safe guarantees
@@ -144,10 +170,11 @@ Every diagram is hand-authored SVG in `src/assets_svg.py`:
 2. grades the photography, subsets the webfonts, generates `dist/`
 3. runs `tools/qa.py` — link integrity, WCAG contrast, per-page DOM audit
 4. runs `tools/test.py` — routing, language switch, catalogue filter, form, drawer
-5. deploys to GitHub Pages, **only if 3 and 4 both pass**
+5. runs `tools/mobile.py` — bottom bar, touch targets, safe areas, RTL mirroring
+6. deploys to GitHub Pages, **only if 3, 4 and 5 all pass**
 
-Pull requests run steps 1–4 and skip the deploy, so a broken build never reaches the
-live URL. Both scripts exit non-zero on failure, which is what gates the deploy.
+Pull requests run steps 1–5 and skip the deploy, so a broken build never reaches the
+live URL. All three scripts exit non-zero on failure, which is what gates the deploy.
 
 The workflow enables Pages itself on the first run (`configure-pages` with
 `enablement: true`). If your account blocks that, set it by hand once:

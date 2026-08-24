@@ -476,6 +476,7 @@ ICONS = {
  'caliper': _icon('<path d="M4 3h5v18H4z"/><path d="M15 3h5v13l-2.5 5-2.5-5Z"/><path d="M9 7h6M9 11h6M9 15h6"/>'),
  'torque':  _icon('<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.2 2.2M16.8 16.8 19 19M19 5l-2.2 2.2M7.2 16.8 5 19"/>'),
  'box':     _icon('<path d="m12 3 8 4.2v9.6L12 21l-8-4.2V7.2Z"/><path d="m4 7.2 8 4.2 8-4.2M12 11.4V21"/>'),
+  'home':    _icon('<path d="M3.5 10.2 12 3.5l8.5 6.7V20a1 1 0 0 1-1 1h-4.5v-6h-6v6H4.5a1 1 0 0 1-1-1Z"/>'),
  'menu':    _icon('<path d="M3 6h18M3 12h18M3 18h18"/>'),
  'close':   _icon('<path d="M6 6l12 12M18 6 6 18"/>'),
 }

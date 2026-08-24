@@ -51,6 +51,9 @@
   --radius: 4px;
   --radius-lg: 10px;
 
+  /* bottom tab bar: one number, so the bar and the body padding can never drift */
+  --tabbar-h: 62px;
+
   /* motion */
   --e-expo: cubic-bezier(.22,1,.36,1);
   --e-std : cubic-bezier(.4,0,.2,1);
@@ -259,7 +262,8 @@ html[dir="rtl"] .nav a{font-size:var(--step-0);font-weight:600}
 /* mobile drawer */
 .drawer{
   position:fixed;inset:0;z-index:80;background:var(--navy-900);
-  display:flex;flex-direction:column;padding:1.25rem var(--gutter) 2rem;
+  display:flex;flex-direction:column;
+  padding:1.25rem var(--gutter) calc(2rem + env(safe-area-inset-bottom,0px));
   transform:translateY(-100%);overflow-y:auto;
   visibility:hidden;pointer-events:none;
   transition:transform .5s var(--e-expo),visibility 0s .5s;
@@ -760,6 +764,67 @@ html[dir="rtl"] .foot__bar{text-transform:none;font-size:var(--step--1)}
 }
 .foot__soc a:hover{border-color:var(--crimson-600);background:var(--crimson-600);color:#fff}
 .foot__soc .ic{inline-size:17px;block-size:17px}
+
+
+/* ---------------------------------------------------------------- BOTTOM TAB BAR
+   Phones and small tablets. Five destinations; the fifth is the conversion action.
+   The burger drawer stays available for the full six pages plus contact details. */
+.tabbar{
+  position:fixed;inset-inline:0;inset-block-end:0;z-index:70;display:none;
+  background:rgba(11,21,51,.95);
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13);      /* a border would add to the height */
+  padding-block-end:env(safe-area-inset-bottom,0px);   /* iPhone home indicator */
+}
+.tabbar__in{display:flex;align-items:stretch;block-size:var(--tabbar-h)}
+.tabbar a{
+  flex:1 1 0;min-inline-size:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:7px 3px 8px;min-block-size:44px;   /* WCAG 2.5.8 floor */
+  color:var(--steel-300);position:relative;
+  transition:color .2s var(--e-std),background-color .15s var(--e-std);
+  -webkit-tap-highlight-color:transparent;
+}
+.tabbar a::before{
+  content:'';position:absolute;inset-block-start:0;inset-inline:24%;block-size:2px;
+  background:var(--crimson-600);transform:scaleX(0);
+  transition:transform .32s var(--e-expo);
+}
+.tabbar a[aria-current="page"]{color:#fff}
+.tabbar a[aria-current="page"]::before{transform:scaleX(1)}
+.tabbar a:active{background:rgba(255,255,255,.07)}
+.tabbar__ic{
+  inline-size:30px;block-size:30px;flex:none;display:grid;place-items:center;
+  border-radius:50%;transition:background-color .2s var(--e-std);
+}
+.tabbar .ic{inline-size:21px;block-size:21px}
+.tabbar__l{
+  font-size:10.5px;letter-spacing:.03em;font-weight:500;line-height:1.15;
+  max-inline-size:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+html[dir="rtl"] .tabbar__l{font-size:12px;font-weight:600}
+/* the conversion tab — crimson on navy fails as text, so it is a filled disc */
+.tabbar a.is-cta{color:#fff}
+.tabbar a.is-cta .tabbar__ic{background:var(--crimson-600);color:#fff}
+.tabbar a.is-cta:active .tabbar__ic{background:var(--crimson-500)}
+.tabbar a.is-cta::before{inset-inline:28%}
+
+@media (max-width:900px){
+  .tabbar{display:block}
+  /* clear the bar so the footer and any anchor target stay reachable */
+  body{padding-block-end:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px))}
+  html{scroll-padding-block-end:calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom,0px))}
+  /* the top bar duplicates what the drawer and footer already carry — on a phone
+     that is 38px of chrome better spent on content */
+  .topbar{display:none}
+  .hdr__in{block-size:62px}
+  html{scroll-padding-block-start:70px}
+}
+@media (max-width:340px){
+  .tabbar__l{font-size:9.5px}
+  .tabbar .ic{inline-size:19px;block-size:19px}
+}
+@media print{.tabbar{display:none}}
 
 /* ---------------------------------------------------------------- REVEAL */
 [data-rv]{opacity:0;transform:translateY(26px);transition:opacity .8s var(--e-expo),transform .8s var(--e-expo)}

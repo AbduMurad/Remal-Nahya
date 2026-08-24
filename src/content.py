@@ -22,6 +22,9 @@ EN = {
     'well-services': 'Well Services', 'about': 'About', 'contact': 'Contact',
 },
 'cta_nav': 'Request a quote',
+# Bottom-bar labels. Deliberately shorter than 'nav' — a tab is ~70px wide.
+'tabs': {'index': 'Home', 'services': 'Services', 'ega-master': 'Tools',
+         'well-services': 'Wells', 'contact': 'Contact'},
 
 'titles': {
   'index': 'Remal Nahya for Oil Services | Exclusive EGA Master Distributor in Libya',
@@ -304,6 +307,8 @@ AR = {
     'well-services': 'خدمات الآبار', 'about': 'من نحن', 'contact': 'تواصل معنا',
 },
 'cta_nav': 'اطلب عرض سعر',
+'tabs': {'index': 'الرئيسية', 'services': 'الخدمات', 'ega-master': 'الأدوات',
+         'well-services': 'الآبار', 'contact': 'تواصل'},
 
 'titles': {
   'index': 'رمال ناهية للخدمات النفطية | الموزّع الحصري لـ EGA Master في ليبيا',

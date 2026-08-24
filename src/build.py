@@ -213,7 +213,9 @@ def header(C, page):
     <a class="btn btn--primary" href="%(contact)s">%(ctal)s%(ai)s</a>
     <a class="btn btn--ghost" href="%(other)s" hreflang="%(ol)s" lang="%(ol)s">%(globe)s%(olabel)s</a>
   </div>
-</div>''' % dict(
+</div>
+%(tabbar)s''' % dict(
+        tabbar=tabbar(C, page),
         skip=e(C['skip']), depots=depots, tel=FACTS['phone1'].replace(' ', ''),
         tel_d=e(FACTS['phone1']), mail=FACTS['email'], logo=logo, nav=nav, dnav=dnav,
         navlab='Main' if lang == 'en' else 'التنقل الرئيسي',
@@ -222,6 +224,25 @@ def header(C, page):
         menu='Menu' if lang == 'en' else 'القائمة',
         close='Close' if lang == 'en' else 'إغلاق', mi=ic('menu'), ci=ic('close'),
         contact=link(lang, 'contact'), ctal=e(C['cta_nav']), ai=ic('arrow'))
+
+
+# Five destinations, one of them the conversion action. About is the only page not
+# here — it is the least-visited on a B2B site, and the burger drawer still carries
+# the full six.
+TAB_PAGES = [('index', 'home'), ('services', 'layers'), ('ega-master', 'tools'),
+             ('well-services', 'well'), ('contact', 'mail')]
+
+
+def tabbar(C, page):
+    lang = C['lang']
+    items = ''.join(
+        '<a href="%s" class="%s"%s><span class="tabbar__ic">%s</span>'
+        '<span class="tabbar__l">%s</span></a>'
+        % (link(lang, p), 'is-cta' if p == 'contact' else '',
+           ' aria-current="page"' if p == page else '', ic(icon), e(C['tabs'][p]))
+        for p, icon in TAB_PAGES)
+    return ('<nav class="tabbar" aria-label="%s"><div class="tabbar__in">%s</div></nav>'
+            % ('Primary' if lang == 'en' else 'التنقل الأساسي', items))
 
 
 def cta_band(C):
@@ -825,7 +846,7 @@ ROUTER_JS = '''
     [].forEach.call(site.querySelectorAll('a.lang'),function(a){
       a.setAttribute('href','#/'+other+'/'+page);
     });
-    [].forEach.call(site.querySelectorAll('.nav a,.drawer nav a'),function(a){
+    [].forEach.call(site.querySelectorAll('.nav a,.drawer nav a,.tabbar a'),function(a){
       var h=a.getAttribute('href')||'';
       if(h.indexOf('/'+page)>-1&&h.indexOf('/'+lang+'/')>-1)a.setAttribute('aria-current','page');
       else a.removeAttribute('aria-current');
