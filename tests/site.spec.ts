@@ -2,7 +2,9 @@ import { test, expect, type Page } from '@playwright/test';
 
 const PAGES = ['', 'services/', 'ega-master/', 'well-services/', 'about/', 'contact/'];
 const LANGS = ['en', 'ar'] as const;
-const ALL = LANGS.flatMap((l) => PAGES.map((p) => `/${l}/${p}`));
+/** Relative on purpose: baseURL carries the basePath, and a leading slash
+ *  would throw the mount point away. */
+const ALL = LANGS.flatMap((l) => PAGES.map((p) => `${l}/${p}`));
 
 /* ------------------------------------------------------------------ pages */
 
@@ -16,7 +18,7 @@ test.describe('every page', () => {
       const res = await page.goto(path);
       expect(res?.status(), 'http status').toBeLessThan(400);
 
-      const lang = path.split('/')[1];
+      const lang = path.split('/')[0];
       await expect(page.locator('html')).toHaveAttribute('lang', lang);
       await expect(page.locator('html')).toHaveAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
 
@@ -69,7 +71,7 @@ test('no internal link 404s', async ({ page, baseURL }) => {
 /* ---------------------------------------------------------- language pair */
 
 test('the language switch lands on the matching page', async ({ page }) => {
-  await page.goto('/en/well-services/');
+  await page.goto('en/well-services/');
   await page.locator('.hdr .lang').click();
   await expect(page).toHaveURL(/\/ar\/well-services\/$/);
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
@@ -77,8 +79,8 @@ test('the language switch lands on the matching page', async ({ page }) => {
   await expect(page).toHaveURL(/\/en\/well-services\/$/);
 });
 
-test('the root gate offers both languages', async ({ page }) => {
-  const r = await page.request.get('/');
+test('the root gate offers both languages', async ({ page, baseURL }) => {
+  const r = await page.request.get(baseURL!);
   expect(r.status()).toBe(200);
   const html = await r.text();
   expect(html).toContain('/en/');
@@ -88,7 +90,7 @@ test('the root gate offers both languages', async ({ page }) => {
 /* ---------------------------------------------------------------- RTL care */
 
 test('Arabic never applies letter-spacing, and Latin runs stay isolated', async ({ page }) => {
-  await page.goto('/ar/');
+  await page.goto('ar/');
   const spaced = await page.evaluate(() =>
     [...document.querySelectorAll('body *')].filter((el) => {
       const ls = getComputedStyle(el).letterSpacing;
@@ -101,7 +103,7 @@ test('Arabic never applies letter-spacing, and Latin runs stay isolated', async 
 });
 
 test('Arabic uses Western numerals, as Libya does', async ({ page }) => {
-  await page.goto('/ar/');
+  await page.goto('ar/');
   const text = await page.locator('body').innerText();
   expect(text, 'Eastern Arabic-Indic digits found').not.toMatch(/[٠-٩]/);
 });
@@ -109,7 +111,7 @@ test('Arabic uses Western numerals, as Libya does', async ({ page }) => {
 /* -------------------------------------------------------------- catalogue */
 
 test('the catalogue filters and searches', async ({ page }) => {
-  await page.goto('/en/services/');
+  await page.goto('en/services/');
   const cards = page.locator('.srv');
   const all = await cards.count();
   expect(all).toBeGreaterThan(15);
@@ -129,7 +131,7 @@ test('the catalogue filters and searches', async ({ page }) => {
 /* ------------------------------------------------------------------- form */
 
 test('the contact form confirms and says it is a demo', async ({ page }) => {
-  await page.goto('/en/contact/');
+  await page.goto('en/contact/');
   await page.locator('#f-name').fill('Test');
   await page.locator('#f-em').fill('t@example.com');
   await page.locator('#f-msg').fill('Zone 1, ATEX, 20 sets, Tripoli.');
@@ -142,7 +144,7 @@ test('the contact form confirms and says it is a demo', async ({ page }) => {
 /* ------------------------------------------------------------- wellbore */
 
 test('the wellbore highlights the stage you scroll to', async ({ page }) => {
-  await page.goto('/en/well-services/');
+  await page.goto('en/well-services/');
   const stick = page.locator('.wellstick');
   const steps = page.locator('.wstep');
   await expect(steps).toHaveCount(4);
@@ -160,7 +162,7 @@ test.describe('bottom tab bar', () => {
 
   for (const lang of LANGS) {
     test(`${lang}: fixed, flush, and every target is tappable`, async ({ page }) => {
-      await page.goto(`/${lang}/services/`);
+      await page.goto(`${lang}/services/`);
       const bar = page.locator('.tabbar');
       await expect(bar).toBeVisible();
 
@@ -193,7 +195,7 @@ test.describe('bottom tab bar', () => {
   }
 
   test('the bar never covers the end of the footer', async ({ page }) => {
-    await page.goto('/ar/');
+    await page.goto('ar/');
     await settle(page);
     const clear = await page.evaluate(() => {
       const bar = document.querySelector('.tabbar')!.getBoundingClientRect();
@@ -204,7 +206,7 @@ test.describe('bottom tab bar', () => {
   });
 
   test('the drawer still carries all six pages', async ({ page }) => {
-    await page.goto('/en/');
+    await page.goto('en/');
     await page.locator('#burger').click();
     const drawer = page.locator('#drawer');
     await expect(drawer).toHaveAttribute('data-open', 'true');
