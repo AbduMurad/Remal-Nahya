@@ -5,7 +5,7 @@
 All twelve photographs are from [Unsplash](https://unsplash.com), used under the
 [Unsplash License](https://unsplash.com/license) (free for commercial use, no
 attribution required — credited here anyway). Originals are in `raw/`; the versions
-in `dist/assets/img/` are cropped and colour-graded by `tools/imgs.py`.
+in `public/assets/img/` are cropped and colour-graded by `scripts/images.mjs`.
 
 | File | Unsplash ID | Photographer | Used for |
 |---|---|---|---|
@@ -34,14 +34,15 @@ legible** in them. Do not reinstate these:
 | `photo-1562237553-36ad661d6f2c` | `ERIELL` stencilled on the derrick mast — a rival drilling contractor |
 
 Check any replacement photograph at full resolution for stamped markings, signage and
-liveries before adding it. `tools/imgs.py` carries the same warning in a comment.
+liveries before adding it. `scripts/images.mjs` carries the same warning in a comment.
 
 ## Type
 
 [IBM Plex Sans, IBM Plex Sans Arabic and IBM Plex Mono](https://github.com/IBM/plex)
 by IBM, under the [SIL Open Font License 1.1](https://openfontlicense.org/).
-`tools/fonts.py` fetches them from Google Fonts and keeps only the latin and arabic
-subsets.
+`scripts/fonts.mjs` fetches them and keeps only the latin and arabic subsets. The
+files are vendored in `src/styles/fonts/` and served through the bundler, so the
+build needs no network.
 
 ## Everything else
 

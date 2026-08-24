@@ -1,0 +1,30 @@
+{
+  "name": "remal-nahya-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "assets": "node scripts/images.mjs",
+    "dev": "next dev",
+    "build": "next build && node scripts/postbuild.mjs",
+    "prebuild": "node scripts/images.mjs",
+    "start": "npx --yes http-server out -p 4321",
+    "typecheck": "tsc --noEmit",
+    "fonts": "node scripts/fonts.mjs",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
+  },
+  "dependencies": {
+    "next": "^16.3.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "sharp": "^0.35.3",
+    "typescript": "^7.0.2"
+  }
+}

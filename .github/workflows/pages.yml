@@ -1,10 +1,11 @@
-name: Build, verify and deploy
+name: Build, test and deploy
 
-# dist/ is generated, not committed. Every push to main rebuilds the site from
-# src/content.py, runs the QA and interaction suites, and only deploys if both pass.
-# Pull requests run the same build and verification but do not deploy.
+# Static export, so there is no Node runtime in production — the artifact is
+# plain files. Deploys only if typecheck, build and the Playwright suite pass.
 #
 # One-time setup: Settings → Pages → Source → GitHub Actions.
+# If the repo is served from a subpath (user.github.io/REPO), NEXT_PUBLIC_BASE_PATH
+# below must match the repo name.
 
 on:
   push:
@@ -18,9 +19,13 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  # '' when served from a custom domain or a user/organisation root site
+  NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+
 jobs:
   build:
-    name: Build and verify
+    name: Build and test
     runs-on: ubuntu-latest
     concurrency:
       group: build-${{ github.ref }}
@@ -28,61 +33,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: '3.12'
-          cache: pip
+          node-version: 22
+          cache: npm
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pillow numpy playwright
+      - run: npm ci
 
-      - name: Install Chromium for the test suite
-        run: python -m playwright install --with-deps chromium
+      - name: Typecheck
+        run: npm run typecheck
 
-      - name: Grade and encode photography
-        run: python tools/imgs.py
+      - name: Build
+        run: npm run build
 
-      - name: Fetch and subset webfonts
-        run: python tools/fonts.py
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
 
-      - name: Generate the site
-        run: python src/build.py
+      - name: Test — 12 pages, RTL, catalogue, form, wellbore, bottom bar
+        run: npm test
 
-      - name: Serve dist/
-        run: |
-          python -m http.server 8901 --directory dist &
-          echo $! > /tmp/server.pid
-          for i in $(seq 1 20); do
-            curl -sf http://127.0.0.1:8901/en/index.html >/dev/null && break
-            sleep 0.5
-          done
-
-      - name: Audit — links, WCAG contrast, DOM, page weight
-        run: python tools/qa.py
-
-      - name: Test — routing, language switch, catalogue filter, form, drawer
-        run: python tools/test.py
-
-      - name: Mobile — bottom bar, touch targets, safe areas, RTL mirroring
-        run: python tools/mobile.py
-
-      - name: Stop the server
-        if: always()
-        run: kill "$(cat /tmp/server.pid)" 2>/dev/null || true
-
-      - name: Attach the standalone single-file demo
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
+        if: failure()
         with:
-          name: remal-nahya-standalone
-          path: dist/remal-nahya.html
-          if-no-files-found: error
-          retention-days: 90
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
 
-      # enablement:true turns Pages on via the API, so the very first run works
-      # without visiting Settings first. If your org blocks that, set Pages to
-      # "GitHub Actions" manually and this becomes a no-op.
       - uses: actions/configure-pages@v5
         if: github.event_name != 'pull_request'
         with:
@@ -91,7 +67,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
-          path: dist
+          path: out
 
   deploy:
     name: Deploy to GitHub Pages
