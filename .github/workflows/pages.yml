@@ -1,0 +1,106 @@
+name: Build, verify and deploy
+
+# dist/ is generated, not committed. Every push to main rebuilds the site from
+# src/content.py, runs the QA and interaction suites, and only deploys if both pass.
+# Pull requests run the same build and verification but do not deploy.
+#
+# One-time setup: Settings → Pages → Source → GitHub Actions.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build and verify
+    runs-on: ubuntu-latest
+    concurrency:
+      group: build-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pillow numpy playwright
+
+      - name: Install Chromium for the test suite
+        run: python -m playwright install --with-deps chromium
+
+      - name: Grade and encode photography
+        run: python tools/imgs.py
+
+      - name: Fetch and subset webfonts
+        run: python tools/fonts.py
+
+      - name: Generate the site
+        run: python src/build.py
+
+      - name: Serve dist/
+        run: |
+          python -m http.server 8901 --directory dist &
+          echo $! > /tmp/server.pid
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8901/en/index.html >/dev/null && break
+            sleep 0.5
+          done
+
+      - name: Audit — links, WCAG contrast, DOM, page weight
+        run: python tools/qa.py
+
+      - name: Test — routing, language switch, catalogue filter, form, drawer
+        run: python tools/test.py
+
+      - name: Stop the server
+        if: always()
+        run: kill "$(cat /tmp/server.pid)" 2>/dev/null || true
+
+      - name: Attach the standalone single-file demo
+        uses: actions/upload-artifact@v4
+        with:
+          name: remal-nahya-standalone
+          path: dist/remal-nahya.html
+          if-no-files-found: error
+          retention-days: 90
+
+      # enablement:true turns Pages on via the API, so the very first run works
+      # without visiting Settings first. If your org blocks that, set Pages to
+      # "GitHub Actions" manually and this becomes a no-op.
+      - uses: actions/configure-pages@v5
+        if: github.event_name != 'pull_request'
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false      # never interrupt a deploy in flight
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

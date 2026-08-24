@@ -1,0 +1,19 @@
+# build scratch
+tools/shots/
+tools/hunt.json
+*.pyc
+__pycache__/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# editors
+.vscode/
+.idea/
+*.swp
+
+# generated — CI rebuilds it from src/ and deploys to Pages.
+# Build locally with: python3 tools/imgs.py && python3 tools/fonts.py && python3 src/build.py
+dist/
