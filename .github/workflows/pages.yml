@@ -40,6 +40,11 @@ jobs:
 
       - run: npm ci
 
+      # src/content/images.json is generated, and typecheck imports it — so the
+      # grade has to run before tsc, not as part of the build that follows it
+      - name: Grade and encode photography
+        run: npm run assets
+
       - name: Typecheck
         run: npm run typecheck
 

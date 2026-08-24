@@ -12,7 +12,7 @@
  * FORCE on tool sets, ERIELL on a derrick. See CREDITS.md.
  */
 import sharp from 'sharp';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,34 +24,31 @@ const MANIFEST = path.join(ROOT, 'src', 'content', 'images.json');
 const NAVY = [0x0b, 0x15, 0x33];
 const WARM = [255, 226, 196];
 
-/** name -> [source, [aspectW, aspectH], grade, widths, inlineWidth, inlineQuality] */
+/** slot -> [source file, aspect ratio, grade, widths to encode] */
 const SPEC = {
-  hero:         ['rig_night_a', [16, 9], { shadow: 0.42, highlight: 0.06, sat: 0.72, contrast: 1.06 }, [1920, 1280, 800], 1600, 72],
-  'ph-services':['rig_vehicle_missing', [21, 9], {}, [], 0, 0], // replaced below
-};
+  hero:          ['rig_night_a', [16, 9], { shadow: 0.42, highlight: 0.06, sat: 0.72, contrast: 1.06 }, [1920, 1280, 800]],
 
-// declared separately so the table above stays readable
-Object.assign(SPEC, {
-  'ph-services':   ['rig_sil',     [21, 9], { shadow: 0.46, highlight: 0.10, sat: 0.62, contrast: 1.05 }, [1600, 900], 1280, 66],
-  'ph-ega':        ['tool_macro',  [21, 9], { shadow: 0.44, highlight: 0.06, sat: 0.60, contrast: 1.10 }, [1600, 900], 1280, 66],
-  'ph-well':       ['rig_desert',  [21, 9], { shadow: 0.50, highlight: 0.08, sat: 0.55, contrast: 1.06 }, [1600, 900], 1280, 66],
-  'ph-about':      ['desert_dusk', [21, 9], { shadow: 0.48, highlight: 0.08, sat: 0.58, contrast: 1.05 }, [1600, 900], 1280, 66],
-  'ph-contact':    ['tower_night', [21, 9], { shadow: 0.40, highlight: 0.06, sat: 0.70, contrast: 1.06 }, [1600, 900], 1280, 66],
-  excl:            ['wh_bars',     [4, 3],  { shadow: 0.40, highlight: 0.08, sat: 0.60, contrast: 1.12 }, [900, 600], 860, 68],
-  partners:        ['pipes_dark',  [16, 9], { shadow: 0.46, highlight: 0.06, sat: 0.30, contrast: 1.14 }, [1600, 900], 1280, 64],
-  map:             ['desert_dusk', [4, 3],  { shadow: 0.44, highlight: 0.10, sat: 0.58, contrast: 1.06 }, [1000, 640], 900, 66],
-  stock:           ['wh_dark',     [4, 3],  { shadow: 0.44, highlight: 0.06, sat: 0.58, contrast: 1.10 }, [900, 600], 860, 66],
-  hse:             ['hat_dark',    [4, 3],  { shadow: 0.42, highlight: 0.08, sat: 0.60, contrast: 1.08 }, [900, 600], 860, 66],
-  crew:            ['pump_sunset', [4, 3],  { shadow: 0.42, highlight: 0.12, sat: 0.66, contrast: 1.06 }, [900, 600], 860, 66],
-  plant:           ['refin_circ',  [16, 9], { shadow: 0.40, highlight: 0.08, sat: 0.62, contrast: 1.06 }, [1200, 800], 1100, 66],
-  'tool-a':        ['wh_bars',     [1, 1],  { shadow: 0.40, highlight: 0.08, sat: 0.55, contrast: 1.12 }, [560], 520, 64],
-  'tool-b':        ['tool_macro',  [1, 1],  { shadow: 0.42, highlight: 0.08, sat: 0.52, contrast: 1.10 }, [560], 520, 64],
-  'tool-c':        ['pipes_dark',  [1, 1],  { shadow: 0.42, highlight: 0.06, sat: 0.55, contrast: 1.10 }, [560], 520, 64],
-  'tool-d':        ['wh_dark',     [1, 1],  { shadow: 0.40, highlight: 0.10, sat: 0.50, contrast: 1.10 }, [560], 520, 64],
-  'tool-e':        ['refin_circ',  [1, 1],  { shadow: 0.44, highlight: 0.06, sat: 0.42, contrast: 1.10 }, [560], 520, 64],
-  'tool-f':        ['hat_dark',    [1, 1],  { shadow: 0.44, highlight: 0.06, sat: 0.50, contrast: 1.10 }, [560], 520, 64],
-});
-delete SPEC['rig_vehicle_missing'];
+  'ph-services': ['rig_sil',     [21, 9], { shadow: 0.46, highlight: 0.10, sat: 0.62, contrast: 1.05 }, [1600, 900]],
+  'ph-ega':      ['tool_macro',  [21, 9], { shadow: 0.44, highlight: 0.06, sat: 0.60, contrast: 1.10 }, [1600, 900]],
+  'ph-well':     ['rig_desert',  [21, 9], { shadow: 0.50, highlight: 0.08, sat: 0.55, contrast: 1.06 }, [1600, 900]],
+  'ph-about':    ['desert_dusk', [21, 9], { shadow: 0.48, highlight: 0.08, sat: 0.58, contrast: 1.05 }, [1600, 900]],
+  'ph-contact':  ['tower_night', [21, 9], { shadow: 0.40, highlight: 0.06, sat: 0.70, contrast: 1.06 }, [1600, 900]],
+
+  excl:          ['wh_bars',     [4, 3],  { shadow: 0.40, highlight: 0.08, sat: 0.60, contrast: 1.12 }, [900, 600]],
+  partners:      ['pipes_dark',  [16, 9], { shadow: 0.46, highlight: 0.06, sat: 0.30, contrast: 1.14 }, [1600, 900]],
+  map:           ['desert_dusk', [4, 3],  { shadow: 0.44, highlight: 0.10, sat: 0.58, contrast: 1.06 }, [1000, 640]],
+  stock:         ['wh_dark',     [4, 3],  { shadow: 0.44, highlight: 0.06, sat: 0.58, contrast: 1.10 }, [900, 600]],
+  hse:           ['hat_dark',    [4, 3],  { shadow: 0.42, highlight: 0.08, sat: 0.60, contrast: 1.08 }, [900, 600]],
+  crew:          ['pump_sunset', [4, 3],  { shadow: 0.42, highlight: 0.12, sat: 0.66, contrast: 1.06 }, [900, 600]],
+  plant:         ['refin_circ',  [16, 9], { shadow: 0.40, highlight: 0.08, sat: 0.62, contrast: 1.06 }, [1200, 800]],
+
+  'tool-a':      ['wh_bars',     [1, 1],  { shadow: 0.40, highlight: 0.08, sat: 0.55, contrast: 1.12 }, [560]],
+  'tool-b':      ['tool_macro',  [1, 1],  { shadow: 0.42, highlight: 0.08, sat: 0.52, contrast: 1.10 }, [560]],
+  'tool-c':      ['pipes_dark',  [1, 1],  { shadow: 0.42, highlight: 0.06, sat: 0.55, contrast: 1.10 }, [560]],
+  'tool-d':      ['wh_dark',     [1, 1],  { shadow: 0.40, highlight: 0.10, sat: 0.50, contrast: 1.10 }, [560]],
+  'tool-e':      ['refin_circ',  [1, 1],  { shadow: 0.44, highlight: 0.06, sat: 0.42, contrast: 1.10 }, [560]],
+  'tool-f':      ['hat_dark',    [1, 1],  { shadow: 0.44, highlight: 0.06, sat: 0.50, contrast: 1.10 }, [560]],
+};
 
 /** Crop to an aspect ratio, biasing the vertical crop upward to keep horizons high. */
 async function cropTo(file, [aw, ah]) {
@@ -94,11 +91,20 @@ async function grade(pipeline, { shadow = 0.3, highlight = 0.1, sat = 0.86, cont
 const clone = (buf, w, h, ch) => sharp(buf, { raw: { width: w, height: h, channels: ch } });
 
 async function run() {
+  // `--if-missing` lets typecheck depend on the manifest without paying for a
+  // regrade it does not need. The build proper always runs the full pass.
+  if (process.argv.includes('--if-missing')) {
+    try {
+      await access(MANIFEST);
+      console.log('images: manifest present, skipping');
+      return;
+    } catch { /* fall through and generate */ }
+  }
   await mkdir(OUT, { recursive: true });
   const manifest = {};
-  let fileTotal = 0, inlineTotal = 0;
+  let fileTotal = 0;
 
-  for (const [name, [src, ratio, gk, widths, iw, iq]] of Object.entries(SPEC)) {
+  for (const [name, [src, ratio, gk, widths]] of Object.entries(SPEC)) {
     const graded = await grade(await cropTo(path.join(RAW, `${src}.jpg`), ratio), gk);
     const { data, info } = await graded.raw().toBuffer({ resolveWithObject: true });
     const { width: W, height: H, channels: CH } = info;
@@ -127,26 +133,18 @@ async function run() {
     const lq = await clone(data, W, H, CH)
       .resize({ width: 20 }).blur(0.6).jpeg({ quality: 42 }).toBuffer();
 
-    const inline = await clone(data, W, H, CH)
-      .resize({ width: Math.min(iw, W), withoutEnlargement: true })
-      .webp({ quality: iq, effort: 6 }).toBuffer();
-    inlineTotal += inline.length;
-
     manifest[name] = {
       w: W, h: H, ratio: `${ratio[0]} / ${ratio[1]}`,
       jpg: `${name}.jpg`, srcs,
       lqip: `data:image/jpeg;base64,${lq.toString('base64')}`,
-      inline: `data:image/webp;base64,${inline.toString('base64')}`,
-      inlineKb: Math.round(inline.length / 1024),
     };
     console.log(
       `${name.padEnd(13)} ${src.padEnd(12)} ${String(W).padStart(4)}x${String(H).padEnd(4)}` +
-      ` files=${String(srcs.reduce((a, s) => a + s.kb, 0)).padStart(4)}KB` +
-      ` inline=${String(manifest[name].inlineKb).padStart(3)}KB`);
+      ` ${String(srcs.reduce((a, s) => a + s.kb, 0)).padStart(4)} KB`);
   }
 
   await writeFile(MANIFEST, JSON.stringify(manifest, null, 1));
-  console.log(`\nfiles ${Math.round(fileTotal / 1024)} KB   inline ${Math.round(inlineTotal / 1024)} KB`);
+  console.log(`\nencoded ${Math.round(fileTotal / 1024)} KB across ${Object.keys(manifest).length} images`);
 }
 
 run().catch((e) => { console.error(e); process.exit(1); });
